@@ -3,10 +3,10 @@
 pragma solidity >=0.8.2 <0.9.0;
 
 abstract contract Owned {
-    address internal owner;
+    address payable internal owner;
 
     constructor() {
-        owner = msg.sender;
+        owner = payable(msg.sender);
     }
 
     modifier onlyOwner() {

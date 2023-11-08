@@ -15,7 +15,7 @@ contract ProductIdentification is Owned {
         uint volume;
     }
 
-    uint registrationTax;
+    uint private registrationTax;
     mapping(address => bool) private registeredProducers;
     mapping(uint => Product) private registeredProducts;
 
@@ -28,9 +28,18 @@ contract ProductIdentification is Owned {
     }
 
     function registerProducer() external payable {
-        require(registrationTax <= msg.value, "Registration tax wasn't payed");
+        require(msg.value >= registrationTax, "Registration tax wasn't payed");
 
         registeredProducers[msg.sender] = true;
+        payable(msg.sender).transfer(msg.value - registrationTax);
+    }
+
+    function registerProduct(uint productId, Product calldata product) external {
+        require(registeredProducers[msg.sender] == true, "Caller isn't a registered producer");
+        require(product.producer == msg.sender, "Product producer isn't the same as caller");
+        // TODO: check if productId and validate product details.
+
+        registeredProducts[productId] = product;
     }
 
     function isRegisteredProducer() external view returns (bool) {
@@ -39,12 +48,5 @@ contract ProductIdentification is Owned {
 
     function isRegisteredProducer(address producerAddress) external view returns (bool) {
         return registeredProducers[producerAddress];
-    }
-
-    function registerProduct(uint productId, Product calldata product) external {
-        require(registeredProducers[msg.sender] == true, "Caller isn't a registered producer");
-        require(product.producer == msg.sender, "Product producer isn't the same as caller");
-
-        registeredProducts[productId] = product;
     }
 }
