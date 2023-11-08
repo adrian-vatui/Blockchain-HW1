@@ -16,8 +16,9 @@ contract ProductIdentification is Owned {
     }
 
     uint private registrationTax;
-    mapping(address => bool) private registeredProducers;
-    mapping(uint => Product) private registeredProducts;
+    mapping(address => bool) private producers;
+    mapping(address => mapping(uint => Product)) products;
+    mapping(address => uint) currentIndexForProducer;
 
     function setRegistrationTax(uint newRegistrationTax) external onlyOwner {
         registrationTax = newRegistrationTax;
@@ -27,26 +28,46 @@ contract ProductIdentification is Owned {
         return registrationTax;
     }
 
+    // PRODUCERS
+
     function registerProducer() external payable {
-        require(msg.value >= registrationTax, "Registration tax wasn't payed");
+        require(msg.value >= registrationTax, "Registration tax wasn't payed.");
 
-        registeredProducers[msg.sender] = true;
+        producers[msg.sender] = true;
         payable(msg.sender).transfer(msg.value - registrationTax);
-    }
 
-    function registerProduct(uint productId, Product calldata product) external {
-        require(registeredProducers[msg.sender] == true, "Caller isn't a registered producer");
-        require(product.producer == msg.sender, "Product producer isn't the same as caller");
-        // TODO: check if productId and validate product details.
-
-        registeredProducts[productId] = product;
+        //Nu vrem sa platim noi ca owner gas-ul
+        payable(owner).transfer(registrationTax);
     }
 
     function isRegisteredProducer() external view returns (bool) {
-        return registeredProducers[msg.sender];
+        return producers[msg.sender];
     }
 
     function isRegisteredProducer(address producerAddress) external view returns (bool) {
-        return registeredProducers[producerAddress];
+        return producers[producerAddress];
+    }
+
+    // PRODUCTS
+
+    function registerProduct(Product calldata product) external returns(uint, Product memory) {
+        require(producers[msg.sender] == true, "Caller isn't a registered producer.");
+        require(product.producer == msg.sender, "Product producer isn't the same as caller.");
+        
+        currentIndexForProducer[msg.sender] = currentIndexForProducer[msg.sender] + 1;
+        uint productId = currentIndexForProducer[msg.sender];
+        products[msg.sender][productId] = product;
+
+        return (productId, product);
+    }
+
+    function isRegisteredProduct(uint productId) external view returns (bool) {
+        return products[msg.sender][productId].producer != address(0);
+    }
+
+    function getProduct(uint productId) external view returns (Product memory) {
+        require(products[msg.sender][productId].producer != address(0), "Product does not exist");
+
+        return products[msg.sender][productId];
     }
 }
