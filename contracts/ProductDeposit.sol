@@ -14,12 +14,11 @@ contract ProductDeposit is Owned {
     mapping(address => address) private authorizedStores;
 
     struct ProductWithQuantity {
-        uint productId;
         ProductIdentification.Product product;
         uint quantity;
     }
-    // Producer => productId => productWithQuantity
-    mapping(address => mapping(uint => ProductWithQuantity)) products;
+    // productId => productWithQuantity
+    mapping(uint => ProductWithQuantity) products;
 
     address payable private productIdentificationAddress;
     ProductIdentification private productIdentification;
@@ -47,7 +46,7 @@ contract ProductDeposit is Owned {
 
     function depositProduct(ProductWithQuantity calldata productWithQuantity) external payable {
         require(productIdentification.isProducerRegistered(msg.sender), "The producer is not authorized.");
-        require(productIdentification.isProductRegistered(msg.sender, productWithQuantity.productId), "Product does not exist.");
+        require(productIdentification.isProductRegistered(productWithQuantity.product.id), "Product does not exist.");
 
         uint productsVolume = productWithQuantity.quantity * productWithQuantity.product.volume;
         require(usedVolume + productsVolume <= maxVolume, "Not enough space.");
@@ -56,31 +55,29 @@ contract ProductDeposit is Owned {
         require(msg.value >= price, "Not enough credits.");
 
         usedVolume += productsVolume;
-        products[msg.sender][productWithQuantity.productId] = productWithQuantity;
+        products[productWithQuantity.product.id] = productWithQuantity;
 
         payable(msg.sender).transfer(msg.value - price);
         payable(owner).transfer(price);
     }
 
-    // VERIFICATA
     function registerStore(address storeAddress) external {
         require(productIdentification.isProducerRegistered(msg.sender), "The producer is not authorized.");
 
         authorizedStores[msg.sender] = storeAddress;
     }
 
-    // VERIFICATA
-    function extractProduct(address producer, uint productId, uint quantity) external returns (ProductIdentification.Product memory, uint) {
+    function extractProduct(uint productId, uint quantity) external returns (ProductWithQuantity memory) {
+        ProductWithQuantity memory productWithQuantity = products[productId];
+        address producer = productWithQuantity.product.producer;
+
         bool isAuthorized = msg.sender == producer  || msg.sender == authorizedStores[producer];
         require(isAuthorized, "Caller is not the producer or an authorized store.");
-
-        ProductWithQuantity memory productWithQuantity = products[producer][productId];
-
         require(quantity <= productWithQuantity.quantity, "Not enough products.");
 
         productWithQuantity.quantity = productWithQuantity.quantity - quantity;
         usedVolume = usedVolume - quantity * productWithQuantity.product.volume;
 
-        return (productWithQuantity.product, quantity);
+        return ProductWithQuantity(productWithQuantity.product, quantity);
     }
 }

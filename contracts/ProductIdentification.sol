@@ -10,6 +10,7 @@ import "./Owned.sol";
  */
 contract ProductIdentification is Owned {
     struct Product {
+        uint id;
         address producer;
         string name;
         uint volume;
@@ -19,10 +20,10 @@ contract ProductIdentification is Owned {
 
     // Producer => bool
     mapping(address => bool) private producers;
-    // Producer => productId => product
-    mapping(address => mapping(uint => Product)) products;
-    // Producer => last index for id
-    mapping(address => uint) currentIndexForProducer;
+    // ProductId => product
+    mapping(uint => Product) products;
+    // Product => last index for id
+    uint currentProductIndex = 0;
 
     function setRegistrationTax(uint newRegistrationTax) external onlyOwner {
         registrationTax = newRegistrationTax;
@@ -49,34 +50,25 @@ contract ProductIdentification is Owned {
 
     // PRODUCTS
 
-    function registerProduct(Product calldata product) external returns(uint, Product memory) {
+    function registerProduct(Product calldata product) external returns (Product memory) {
         require(producers[msg.sender] == true, "Caller isn't a registered producer.");
         require(product.producer == msg.sender, "Product producer isn't the same as caller.");
         
-        currentIndexForProducer[msg.sender] = currentIndexForProducer[msg.sender] + 1;
-        uint productId = currentIndexForProducer[msg.sender];
-        products[msg.sender][productId] = product;
+        currentProductIndex = currentProductIndex + 1;
+        uint productId = currentProductIndex;
+        products[productId] = product;
+        products[productId].id = productId;
 
-        return (productId, product);
+        return product;
     }
 
     function isProductRegistered(uint productId) external view returns (bool) {
-        return products[msg.sender][productId].producer != address(0);
-    }
-
-    function isProductRegistered(address producerAddress, uint productId) external view returns (bool) {
-        return products[producerAddress][productId].producer != address(0);
+        return products[productId].producer != address(0);
     }
 
     function getProduct(uint productId) external view returns (Product memory) {
-        require(products[msg.sender][productId].producer != address(0), "Product does not exist");
+        require(products[productId].producer != address(0), "Product does not exist");
 
-        return products[msg.sender][productId];
-    }
-
-    function getProduct(address producerAddress, uint productId) external view returns (Product memory) {
-        require(products[producerAddress][productId].producer != address(0), "Product does not exist");
-
-        return products[producerAddress][productId];
+        return products[productId];
     }
 }
