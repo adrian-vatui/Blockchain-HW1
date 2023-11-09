@@ -6,4 +6,4 @@ typechain
 
 #Hardhat files
 cache
-contracts/artifacts
+/contracts/artifacts
