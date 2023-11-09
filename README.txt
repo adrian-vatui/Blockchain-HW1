@@ -1,4 +1,4 @@
-Product Chain Suply
+Product Supply-Chain
 
 This project contains 3 directories:
 
