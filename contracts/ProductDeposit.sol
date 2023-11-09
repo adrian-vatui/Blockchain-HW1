@@ -28,7 +28,7 @@ contract ProductDeposit is Owned {
         productIdentification = ProductIdentification(productIdentificationAddress);
     }
 
-    function setTaxPerVolumeUnit(uint newTaxPerVolumeUnit, uint) external onlyOwner {
+    function setTaxPerVolumeUnit(uint newTaxPerVolumeUnit) external onlyOwner {
         taxPerVolumeUnit = newTaxPerVolumeUnit;
     }
 
@@ -36,7 +36,7 @@ contract ProductDeposit is Owned {
         return taxPerVolumeUnit;
     }
     
-    function setMaxDepositVolume(uint newMaxDepositVolume, uint) external onlyOwner {
+    function setMaxDepositVolume(uint newMaxDepositVolume) external onlyOwner {
         maxVolume = newMaxDepositVolume;
     }
 
@@ -55,7 +55,13 @@ contract ProductDeposit is Owned {
         require(msg.value >= price, "Not enough credits.");
 
         usedVolume += productsVolume;
-        products[productWithQuantity.product.id] = productWithQuantity;
+        if(products[productWithQuantity.product.id].product.producer == address(0x0)) {
+            // product is new
+            products[productWithQuantity.product.id] = productWithQuantity;
+        } else {
+            // product was already existent in deposit
+            products[productWithQuantity.product.id].quantity += productWithQuantity.quantity;
+        }
 
         payable(msg.sender).transfer(msg.value - price);
         payable(owner).transfer(price);
@@ -75,7 +81,7 @@ contract ProductDeposit is Owned {
         require(isAuthorized, "Caller is not the producer or an authorized store.");
         require(quantity <= productWithQuantity.quantity, "Not enough products.");
 
-        productWithQuantity.quantity = productWithQuantity.quantity - quantity;
+        products[productId].quantity = productWithQuantity.quantity - quantity;
         usedVolume = usedVolume - quantity * productWithQuantity.product.volume;
 
         return ProductWithQuantity(productWithQuantity.product, quantity);

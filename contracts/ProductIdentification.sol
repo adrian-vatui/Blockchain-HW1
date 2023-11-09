@@ -4,10 +4,6 @@ pragma solidity >=0.8.2 <0.9.0;
 
 import "./Owned.sol";
 
-/**
- * @title ProductIdentification
- * @dev TODO write
- */
 contract ProductIdentification is Owned {
     struct Product {
         uint id;
@@ -59,7 +55,7 @@ contract ProductIdentification is Owned {
         products[productId] = product;
         products[productId].id = productId;
 
-        return product;
+        return products[productId];
     }
 
     function isProductRegistered(uint productId) external view returns (bool) {

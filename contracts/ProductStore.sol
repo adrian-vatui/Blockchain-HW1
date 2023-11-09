@@ -54,20 +54,22 @@ contract ProductStore is Owned {
     }
 
     function isProductAuthentic(uint productId) external view returns (bool) {
-        if (productIdentification.getProduct(productId).producer == address(0)) {
+        if (productIdentification.getProduct(productId).producer == address(0x0)) {
             return false;
         }
 
         return true;
     }
 
-    function buyProduct(address producer, uint productId, uint quantity) external payable returns (ProductIdentification.Product memory, uint) {
+    function buyProduct(uint productId, uint quantity) external payable returns (ProductIdentification.Product memory, uint) {
         PricedProduct memory product = products[productId];
-        require(product.quantity - quantity >= 0, "There must be enough products in store.");
-
-        product.quantity = product.quantity - quantity;
         uint payment = quantity * product.price;
+        require(product.quantity >= quantity, "There must be enough products in store.");
+        require(msg.value >= payment, "Not enough credits.");
 
+        products[productId].quantity = product.quantity - quantity;
+
+        address producer = productIdentification.getProduct(productId).producer;
         payable(producer).transfer(payment / 2);
         payable(owner).transfer(payment / 2);
 
